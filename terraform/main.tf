@@ -195,3 +195,44 @@ resource "google_project_iam_member" "dbt_job_user" {
   member  = "serviceAccount:${google_service_account.ingestion_sa.email}"
 }
 
+# ---------------------------------------------------------
+# 9. Observability: SLO Alerting
+# ---------------------------------------------------------
+# Notification Channel (Email)
+resource "google_monitoring_notification_channel" "email_alerts" {
+  display_name = "DevOps Team Email"
+  type         = "email"
+  labels = {
+    email_address = "sheikh.vazid.ahmed@gmail.com" # Replace with your actual email for testing
+  }
+}
+
+# Alert Policy: Trigger if DLQ has > 0 messages (Bad Data Detected)
+resource "google_monitoring_alert_policy" "dlq_not_empty" {
+  display_name = "SLO Breach: Invalid Data in DLQ"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "DLQ has undelivered messages"
+
+    condition_threshold {
+      filter = "resource.type = \"pubsub_subscription\" AND resource.labels.subscription_id = \"${google_pubsub_subscription.dlq_subscription.name}\" AND metric.type = \"pubsub.googleapis.com/subscription/num_undelivered_messages\""
+
+      duration   = "60s" # If condition lasts for 1 minute
+      comparison = "COMPARISON_GT"
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_MAX"
+      }
+
+      threshold_value = 0 # Alert on even 1 message
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email_alerts.name]
+
+  documentation {
+    content = "The Ingestion DLQ has messages. Bad data was rejected. See RUNBOOK.md for triage."
+  }
+}
