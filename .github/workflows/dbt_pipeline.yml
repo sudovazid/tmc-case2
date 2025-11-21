@@ -8,6 +8,8 @@ on:
 
 env:
   dbt_working_dir: ./dbt_project
+  # 1. FIX: Tell dbt to look for profiles.yml in the current directory
+  DBT_PROFILES_DIR: ./
 
 jobs:
   dbt_validation:
@@ -33,14 +35,15 @@ jobs:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
       - name: Configure dbt Profiles
-        # We inject the Service Account Key content directly into an env var
-        # so profiles.yml can read it using {{ env_var('GCP_SA_KEY') }}
         run: |
-          echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
-          echo "${{ secrets.GCP_SA_KEY }}" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          # 2. FIX: Create the key file at the location dbt expects (in the workspace)
+          # We save the secret to a file named 'dbt-key.json' inside dbt_project/
+          echo '${{ secrets.GCP_SA_KEY }}' > ${{ env.dbt_working_dir }}/dbt-key.json
 
-          # Also set Project ID
+          # Set the Env Var so profiles.yml can read the filename
+          echo "GCP_SA_KEY=./dbt-key.json" >> $GITHUB_ENV
+
+          # Set Project ID
           echo "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID || 'vazid-live' }}" >> $GITHUB_ENV
 
       - name: Run dbt Debug
@@ -53,5 +56,4 @@ jobs:
 
       - name: Run dbt Tests (The Quality Gate)
         working-directory: ${{ env.dbt_working_dir }}
-        # This step fails the pipeline if any test (like amount >= 0) fails
         run: dbt test
