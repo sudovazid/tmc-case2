@@ -8,4 +8,4 @@ default:
       dataset: "data_warehouse_dev"
       threads: 1
       keyfile: "{{ env_var('GCP_SA_KEY') }}"
-      location: US
+      location: us-central1
