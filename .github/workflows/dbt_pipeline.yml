@@ -1,0 +1,57 @@
+name: Case 2 Data Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  dbt_working_dir: ./dbt_project
+
+jobs:
+  dbt_validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dbt
+        run: |
+          pip install dbt-bigquery
+          dbt --version
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Configure dbt Profiles
+        # We inject the Service Account Key content directly into an env var
+        # so profiles.yml can read it using {{ env_var('GCP_SA_KEY') }}
+        run: |
+          echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
+          echo "${{ secrets.GCP_SA_KEY }}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          # Also set Project ID
+          echo "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID || 'vazid-live' }}" >> $GITHUB_ENV
+
+      - name: Run dbt Debug
+        working-directory: ${{ env.dbt_working_dir }}
+        run: dbt debug
+
+      - name: Run dbt Models
+        working-directory: ${{ env.dbt_working_dir }}
+        run: dbt run
+
+      - name: Run dbt Tests (The Quality Gate)
+        working-directory: ${{ env.dbt_working_dir }}
+        # This step fails the pipeline if any test (like amount >= 0) fails
+        run: dbt test
