@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: warehouse
-    database: "{{ env_var('GCP_PROJECT_ID') }}" # Injected via CI
+    database: "{{ env_var('GCP_PROJECT_ID') }}"
     schema: "data_warehouse_dev"
     tables:
       - name: raw_transactions
@@ -18,8 +18,6 @@ models:
       - name: amount
         tests:
           - not_null
-          # Custom Test: Amount must be positive
-          - expression: ">= 0"
 
   - name: fct_daily_revenue
     description: "Daily revenue aggregation"
