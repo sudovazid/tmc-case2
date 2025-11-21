@@ -1,0 +1,2 @@
+{"transaction_id": "tx_101", "created_at": "2025-11-21T10:00:00Z", "amount": 150.50, "customer_id": "user_A"}
+{"transaction_id": "tx_102", "created_at": "2025-11-21T10:05:00Z", "amount": 200.00, "customer_id": "user_B"}

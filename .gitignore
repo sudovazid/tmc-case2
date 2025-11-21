@@ -1,0 +1,20 @@
+# Terraform specific
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfplan
+
+# Python specific
+__pycache__/
+*.pyc
+venv/
+.pytest_cache/
+
+# dbt specific
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+
+#keys
+dbt-key.json
